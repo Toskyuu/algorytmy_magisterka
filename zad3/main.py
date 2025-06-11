@@ -4,23 +4,33 @@ import networkx as nx
 import matplotlib.pyplot as plt
 import os
 
+
 def read_graph_from_csv(filename):
     try:
         df = pd.read_csv(filename, index_col=0)
-        if 'source' in df.columns and 'target' in df.columns and 'weight' in df.columns:
-            # Format: edge list
+
+        # Format: lista krawędzi
+        if {'source', 'target', 'weight'}.issubset(df.columns):
             G = nx.Graph()
             for _, row in df.iterrows():
-                G.add_edge(row['source'], row['target'], weight=row['weight'])
+                G.add_edge(str(row['source']), str(row['target']), weight=float(row['weight']))
+
+        # Format: macierz sąsiedztwa
         else:
-            # Format: adjacency matrix
             G = nx.Graph()
             for i in df.index:
                 for j in df.columns:
-                    weight = df.loc[i, j]
-                    if weight != 0:
-                        G.add_edge(str(i), str(j), weight=weight)
+                    if i == j:
+                        continue  # pomijamy przekątną (połączenie samego ze sobą)
+                    value = df.loc[i, j]
+
+                    if pd.isna(value) or value == '' or value == 0:
+                        continue  # brak połączenia
+
+                    G.add_edge(str(i), str(j), weight=float(value))
+
         return G
+
     except Exception as e:
         print("Błąd podczas wczytywania pliku CSV:", e)
         return None
@@ -31,6 +41,7 @@ def compute_minimum_spanning_tree(G):
 
 def prim_mst(G):
     start_node = list(G.nodes())[0]  # dowolny wierzchołek początkowy
+    print(start_node)
     visited = set([start_node])
     edges = [
         (data['weight'], start_node, neighbor)

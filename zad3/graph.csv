@@ -1,0 +1,8 @@
+,Hotel,Jaskinia gier,Basen,Restauracja,Siłownia,Sala gimnastyczna,Sklep
+Hotel,0,10,25,15,18,20,0
+Jaskinia gier,10,0,45,0,20,0,0
+Basen,25,45,0,30,0,0,0
+Restauracja,15,0,30,0,0,20,24
+Siłownia,18,20,0,0,0,8,10
+Sala gimnastyczna,20,0,0,20,8,0,17
+Sklep,0,0,0,24,10,17,0

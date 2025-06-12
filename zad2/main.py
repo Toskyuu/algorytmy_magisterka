@@ -71,44 +71,72 @@ def remove_dominated_strategies(matrix):
     print(matrix)
     return matrix
 
-def solve_lp_strategy_for_player_a(matrix):
+def solve_lp_strategy(matrix, player='A'):
     matrix = np.array(matrix)
     m, n = matrix.shape
 
-    # LP: max v  <=>  min -v
-    # Dodajemy zmienną v, która zostanie zminimalizowana (czyli -v zmaksymalizowane)
-    c = [-1] + [0] * m  # Zmienna v, potem prawdopodobieństwa p1..pm
+    if player == 'A':
+        # Gracz A: zmienne to v oraz p_i (prawdopodobieństwa dla wierszy)
+        # Maksymalizujemy v => minimalizujemy -v
+        c = [-1] + [0] * m
 
-    # Ograniczenia: suma(pi * a_ij) >= v  =>  -pi * a_ij <= -v
-    A_ub = []
-    b_ub = []
-    for j in range(n):
-        constraint = [1]  # dla v
-        constraint += [-matrix[i][j] for i in range(m)]  # -a_ij * p_i
-        A_ub.append(constraint)
-        b_ub.append(0)
+        # Ograniczenia: suma (p_i * a_ij) >= v dla każdej kolumny j
+        # Przekształcone: -p_i * a_ij <= -v
+        A_ub = []
+        b_ub = []
+        for j in range(n):
+            row = [1]  # współczynnik dla v
+            # dla p_i jest -a_ij
+            row.extend(-matrix[:, j])
+            A_ub.append(row)
+            b_ub.append(0)
 
-    # Suma p_i = 1
-    A_eq = [[0] + [1] * m]
-    b_eq = [1]
+        # suma p_i = 1
+        A_eq = [[0] + [1] * m]
+        b_eq = [1]
 
-    # Ograniczenia: pi >= 0
-    bounds = [(None, None)] + [(0, 1) for _ in range(m)]
+        # p_i >= 0, v dowolne
+        bounds = [(None, None)] + [(0, 1) for _ in range(m)]
+
+    else:
+        # Gracz B: zmienne to v oraz q_j (prawdopodobieństwa dla kolumn)
+        # Minimalizujemy v
+        c = [1] + [0] * n
+
+        # Ograniczenia: suma (q_j * a_ij) <= v dla każdej linii i
+        # Przekształcone: p_j * a_ij - v <= 0
+        A_ub = []
+        b_ub = []
+        for i in range(m):
+            row = [-1]  # współczynnik dla v (teraz -v, bo v >= suma)
+            row.extend(matrix[i, :])
+            A_ub.append(row)
+            b_ub.append(0)
+
+        # suma q_j = 1
+        A_eq = [[0] + [1] * n]
+        b_eq = [1]
+
+        # q_j >= 0, v dowolne
+        bounds = [(None, None)] + [(0, 1) for _ in range(n)]
 
     res = linprog(c=c, A_ub=A_ub, b_ub=b_ub, A_eq=A_eq, b_eq=b_eq, bounds=bounds, method="highs")
 
     if res.success:
         v = res.x[0]
         probs = res.x[1:]
-        print("\n--- Rozwiązanie strategii mieszanej (gracz A) ---")
+        print(f"\n--- Rozwiązanie strategii mieszanej (gracz {player}) ---")
         for i, p in enumerate(probs):
             print(f"Strategia {i + 1}: {round(p, 4)}")
         print(f"Wartość gry: {round(v, 4)}")
+        return v, probs
     else:
-        print("Nie udało się znaleźć rozwiązania programowania liniowego.")
+        print(f"Nie udało się znaleźć rozwiązania programowania liniowego dla gracza {player}.")
+        return None, None
 
 if __name__ == "__main__":
     matrix = read_matrix()
     if not minimax(matrix):
         matrix = remove_dominated_strategies(matrix)
-        solve_lp_strategy_for_player_a(matrix)
+        solve_lp_strategy(matrix, player='A')
+        solve_lp_strategy(matrix, player='B')
